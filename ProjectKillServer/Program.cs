@@ -23,8 +23,8 @@ namespace ProjectKill
 		[MTAThread]
 		static void Main()
 		{
-            try
-            {
+			try
+			{
 				server.Start(4);
 				Console.WriteLine("服务器已监听于0.0.0.0:13000。");
 
@@ -205,7 +205,7 @@ namespace ProjectKill
 			TcpClient client = (TcpClient)obj;
 			NetworkStream stream = client.GetStream();
 
-			byte[] bytes = new byte[1024];
+			byte[] bytes = new byte[4096];
 			int i = 0;
 
 			try
@@ -259,7 +259,7 @@ namespace ProjectKill
 
 		}
 
-		public static object ProcessRecvMsg(Player player, string operation, string msg)
+		public static bool ProcessRecvMsg(Player player, string operation, string msg)
 		{
 			switch (operation)
 			{
@@ -267,7 +267,19 @@ namespace ProjectKill
 					lock (CommonDataLock.SharedLock)
 					{
 						CommonDataLock.DataReceivedEvent.Set();
+						// 检查是否有重名
+						foreach (Player p in PlayerList)
+						{
+							if (p.Name == msg && p != player)
+							{
+								Console.WriteLine("Name already exists!");
+								SendTargetHandle(player, "name:rename");
+								CommonDataLock.DataReceivedEvent.Reset();
+								return false;
+							}
+						}
 						player.Name = msg;
+						SendTargetHandle(player, "name:ok");
 					}
 					return true;
 				case "chat":
